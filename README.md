@@ -1,2 +1,2 @@
 # SWT-Projekt-Gruppe3
-Bahn Finanzanalyse-Tool
+Projekt-Analyse-Cockpit
