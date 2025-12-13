@@ -176,10 +176,299 @@ if selected_project:
 
     st.divider()
 
+
+#Diagramme 
+
+
+    # ---------------------------------------------------------
+    # 4B. BUDGET-AMPEL PRO PSP-ELEMENT
+    # ---------------------------------------------------------
+    st.subheader(" Budget-Ampel pro PSP-Element")
+    
+    if not df_psp_stats.empty and total_budget > 0:
+        import plotly.graph_objects as go
+        
+        df_ampel = df_psp_stats.copy()
+        df_ampel['Auslastung %'] = (df_ampel['Gesamtaufwand'] / total_budget * 100)
+        df_ampel = df_ampel.sort_values('Auslastung %', ascending=False)
+        
+        # Farben basierend auf Auslastung
+        def get_color(prozent):
+            if prozent > 100:
+                return '#d32f2f'  # Rot
+            elif prozent > 80:
+                return '#ffa726'  # Orange
+            else:
+                return '#66bb6a'  # Grün
+        
+        df_ampel['color'] = df_ampel['Auslastung %'].apply(get_color)
+        
+        # Horizontales Balkendiagramm
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            y=df_ampel['psp'],
+            x=df_ampel['Auslastung %'],
+            orientation='h',
+            marker=dict(
+                color=df_ampel['color'],
+                line=dict(color='rgba(0,0,0,0.3)', width=1)
+            ),
+            text=df_ampel['Auslastung %'].apply(lambda x: f"{x:.1f}%"),
+            textposition='outside',
+            hovertemplate='<b>%{y}</b><br>Auslastung: %{x:.1f}%<br>Kosten: ' + 
+                         df_ampel['Gesamtaufwand'].apply(lambda x: format_currency(x)) + '<extra></extra>'
+        ))
+        
+        # Schwellwert-Linien
+        fig.add_vline(x=80, line_dash="dash", line_color="orange", annotation_text="80%", annotation_position="top")
+        fig.add_vline(x=100, line_dash="dash", line_color="red", annotation_text="100%", annotation_position="top")
+        
+        fig.update_layout(
+            title="Budget-Auslastung pro PSP-Element",
+            xaxis_title="Auslastung (%)",
+            yaxis_title="",
+            height=max(300, len(df_ampel) * 50),
+            showlegend=False,
+            xaxis=dict(range=[0, max(120, df_ampel['Auslastung %'].max() * 1.1)])
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        #  Info-Karten
+        critical_count = len(df_ampel[df_ampel['Auslastung %'] > 100])
+        warning_count = len(df_ampel[(df_ampel['Auslastung %'] > 80) & (df_ampel['Auslastung %'] <= 100)])
+        ok_count = len(df_ampel[df_ampel['Auslastung %'] <= 80])
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("🔴 Über Budget", critical_count)
+        col2.metric("🟡 Warnung (>80%)", warning_count)
+        col3.metric("🟢 Im Rahmen", ok_count)
+        
+    else:
+        st.info("Keine Budget-Daten für Ampel verfügbar.")
+
+    st.divider()
+
+
+    # ---------------------------------------------------------
+    # 4C. ZEITVERLAUF: KOSTEN PRO MONAT
+    # ---------------------------------------------------------
+    st.subheader(" Kostenentwicklung über Zeit")
+    
+    if not df_ist.empty and 'periode' in df_ist.columns:
+        # Daten nach Monat gruppieren
+        df_timeline = df_ist.groupby('periode')['wert'].sum().reset_index()
+        
+        #  Periode als Zahl behandeln und sortieren
+        df_timeline['periode_num'] = pd.to_numeric(df_timeline['periode'], errors='coerce')
+        df_timeline = df_timeline.dropna(subset=['periode_num'])  # Ungültige entfernen
+        df_timeline = df_timeline.sort_values('periode_num')
+        
+        # Kumulative Kosten berechnen 
+        df_timeline['Kumuliert'] = df_timeline['wert'].cumsum()
+        
+        # Chart erstellen
+        import plotly.graph_objects as go
+        
+        fig = go.Figure()
+        
+        # Monatliche Kosten (Balken)
+        fig.add_trace(go.Bar(
+            x=df_timeline['periode'],
+            y=df_timeline['wert'],
+            name='Monatlich',
+            marker_color='lightblue',
+            yaxis='y'
+        ))
+        
+        # Kumulative Kosten (Linie)
+        fig.add_trace(go.Scatter(
+            x=df_timeline['periode'],
+            y=df_timeline['Kumuliert'],
+            name='Kumuliert',
+            line=dict(color='darkblue', width=3),
+            yaxis='y2'
+        ))
+        
+    
+       # Layout
+        fig.update_layout(
+            title="Monatliche vs. Kumulative Ist-Kosten",
+            xaxis=dict(title="Periode (Monat)", type='category'),
+            yaxis=dict(title="Monatliche Kosten (€)", side='left'),
+            yaxis2=dict(title="Kumulative Kosten (€)", side='right', overlaying='y'),
+            hovermode='x unified',
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Insights
+        max_month = df_timeline.loc[df_timeline['wert'].idxmax(), 'periode']
+        max_value = df_timeline['wert'].max()
+        total = df_timeline['Kumuliert'].iloc[-1]
+        
+        col1, col2 = st.columns(2)
+        col1.info(f" **Teuerster Monat:** {max_month} mit {format_currency(max_value)}")
+        col2.info(f" **Gesamt (kumuliert):** {format_currency(total)}")
+        
+    else:
+        st.info("Keine Zeitverlaufsdaten verfügbar.")
+
+    st.divider()
+
+  # ---------------------------------------------------------
+    # 4D. IST VS. OBLIGO VERHÄLTNIS
+    # ---------------------------------------------------------
+    st.subheader(" Ist vs. Obligo Verhältnis")
+    
+    if total_ist > 0 or total_obligo > 0:
+        import plotly.graph_objects as go
+        
+        # Daten vorbereiten
+        labels = ['Bereits bezahlt (Ist)', 'Noch offen (Obligo)']
+        values = [total_ist, total_obligo]
+        colors = ['#1f77b4', '#ff7f0e']  # Blau für Ist, Orange für Obligo
+        
+        # Pie Chart erstellen
+        fig = go.Figure(data=[go.Pie(
+            labels=labels,
+            values=values,
+            hole=0.4,  # Donut-Style
+            marker=dict(colors=colors),
+            textinfo='label+percent',
+            textposition='outside',
+            hovertemplate='<b>%{label}</b><br>%{value:,.2f} €<br>%{percent}<extra></extra>'
+        )])
+        
+        fig.update_layout(
+            title="Verteilung: Bezahlt vs. Offen",
+            height=400,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Insights
+        gesamt = total_ist + total_obligo
+        ist_prozent = (total_ist / gesamt * 100) if gesamt > 0 else 0
+        obligo_prozent = (total_obligo / gesamt * 100) if gesamt > 0 else 0
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric(" Bereits bezahlt", format_currency(total_ist), f"{ist_prozent:.1f}%")
+        col2.metric(" Noch offen", format_currency(total_obligo), f"{obligo_prozent:.1f}%")
+        col3.metric(" Gesamt", format_currency(gesamt))
+        
+    else:
+        st.info("Keine Daten für Ist vs. Obligo verfügbar.")
+
+    st.divider()
+
+
+
+
+    # ---------------------------------------------------------
+    # 4E. KOSTENVERTEILUNG PRO PSP-BEREICH
+    # ---------------------------------------------------------
+    st.subheader("Kostenverteilung pro PSP-Bereich")
+    
+    if not df_psp_stats.empty:
+        import plotly.graph_objects as go
+        
+        # PSP-Bereiche extrahieren (z.B. .01, .02, .03 aus G.011803005.01.03)
+        df_psp_viz = df_psp_stats.copy()
+        
+        def extract_bereich(psp):
+            """Extrahiert den Bereich (z.B. .01, .02) aus PSP"""
+            if not isinstance(psp, str):
+                return "Unbekannt"
+            parts = psp.split('.')
+            if len(parts) >= 3:
+                return f".{parts[2]}"  # z.B. .01, .02, .03
+            return psp
+        
+        df_psp_viz['bereich'] = df_psp_viz['psp'].apply(extract_bereich)
+        
+        # Nach Bereich gruppieren
+        df_bereiche = df_psp_viz.groupby('bereich').agg({
+            'wert': 'sum',
+            'obligo_wert': 'sum',
+            'Gesamtaufwand': 'sum'
+        }).reset_index()
+        
+        df_bereiche = df_bereiche.sort_values('Gesamtaufwand', ascending=True)
+        
+        # Höhe berechnen
+        chart_height = max(300, len(df_bereiche) * 60)
+        
+        # Gestapeltes Balkendiagramm
+        fig = go.Figure()
+        
+      # Ist-Kosten (blau)
+        fig.add_trace(go.Bar(
+            y=df_bereiche['bereich'],
+            x=df_bereiche['wert'],
+            name='Ist-Kosten',
+            orientation='h',
+            marker_color='#1f77b4',
+            text='',  
+            textposition='inside',
+            hovertemplate='<b>PSP %{y}</b><br>Ist-Kosten: %{x:,.2f} €<extra></extra>'
+        ))
+        
+      # Obligo (orange)
+        fig.add_trace(go.Bar(
+            y=df_bereiche['bereich'],
+            x=df_bereiche['obligo_wert'],
+            name='Obligo',
+            orientation='h',
+            marker_color='#ff7f0e',
+            text='',
+            textposition='inside',
+            hovertemplate='<b>PSP %{y}</b><br>Obligo: %{x:,.2f} €<extra></extra>'
+        ))
+        
+        fig.update_layout(  
+            title="Kosten pro PSP-Bereich (Ist + Obligo)",
+            xaxis_title="Kosten (€)",
+            yaxis=dict(
+                title="PSP-Bereich",
+                type='category'
+            ),
+            barmode='stack',
+            height=chart_height,
+            hovermode='y unified',
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Top 3 teuerste Bereiche
+        top3_bereiche = df_bereiche.nlargest(3, 'Gesamtaufwand')
+        
+        if not top3_bereiche.empty:
+            st.subheader(" Top 3 teuerste Bereiche")
+            cols = st.columns(3)
+            for idx, (_, row) in enumerate(top3_bereiche.iterrows()):
+                if idx < 3:
+                    cols[idx].metric(
+                        f"Bereich {row['bereich']}", 
+                        format_currency(row['Gesamtaufwand']),
+                        f"{row['Gesamtaufwand']/df_bereiche['Gesamtaufwand'].sum()*100:.1f}%"
+                    )
+        
+    else:
+        st.info("Keine PSP-Bereichsdaten verfügbar.")
+
+    st.divider()
+
+
     # ---------------------------------------------------------
     # 5. MATRIX (ZUSAMMENGEFASST)
     # ---------------------------------------------------------
-    st.subheader("📋 Bestell-Matrix (Zusammengefasst)")
+    st.subheader(" Bestell-Matrix (Zusammengefasst)")
 
     # Vorbereitung Ist
     if not df_ist.empty:
@@ -255,4 +544,4 @@ if selected_project:
     )
 
 else:
-    st.info("👈 Bitte wählen Sie ein Projekt aus.")
+    st.info(" Bitte wählen Sie ein Projekt aus.")
