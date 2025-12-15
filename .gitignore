@@ -205,3 +205,24 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- PROJEKT SPEZIFISCH ---
+
+# Datenbank
+finanzdaten.db
+*.db
+*.sqlite3
+
+# Sensible Daten
+data/
+*.xlsx
+*.xls
+*.csv
+
+# Streamlit Secrets
+.streamlit/secrets.toml
+
+# Windows Systemdateien
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
