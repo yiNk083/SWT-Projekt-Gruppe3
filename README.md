@@ -14,11 +14,12 @@ Dieses Tool ersetzt die manuelle Excel-Verarbeitung von SAP-Finanzdaten. Es lies
 
 **Hauptfunktionen:**
 
-* **Automatisiertes Daten-Mapping:** Verknüpft `CJI3` (Ist) mit `CJI5` (Obligo) über die Bestellnummer.
-* **Bestell-Matrix:** Zeigt übersichtlich alle Bestellungen pro Monat.
-* **PSP-Drilldown:** Listet detailliert auf, welches PSP-Element (`.01`, `.02`...) wie viel Budget verbraucht.
-* **Budget-Überwachung:** Vergleicht Vertragsvolumen (LV) mit der Summe aus Ist-Kosten + Rest-Obligo.
-* **Robustheit:** Zeigt auch Bestellungen an, die noch keine Ist-Kosten haben (Full Outer Join), und fängt Datenlücken ab ("Ohne Bestellbezug").
+* **Dashboard-Visualisierung:** Interaktive Diagramme für Budgetverläufe und Kostenverteilung (Plotly).
+* **Budget-Ampel:** Zeigt sofort, welche PSP-Elemente kritisch sind (Grün/Gelb/Rot).
+* **Ist vs. Obligo:** Donut-Chart zur Analyse des Verhältnisses von bezahlten Rechnungen zu offenen Bestellungen.
+* **Zeitverlauf:** Analyse der Kostenentwicklung über die Monate (Kumulierte Kurve).
+* **Automatisiertes Mapping:** Verknüpft `CJI3` (Ist) mit `CJI5` (Obligo) via Full Outer Join.
+* **Bestell-Matrix:** Detaillierte Tabelle aller Bestellungen inkl. "Ohne Bestellbezug".
 
 ---
 
@@ -91,9 +92,10 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 
 ## 🛠️ Technologie-Stack
 
-* **Frontend:** [Streamlit](https://streamlit.io/) (Interaktives Web-Dashboard)
-* **Datenverarbeitung:** [Pandas](https://pandas.pydata.org/) (ETL-Prozesse, Pivotisierung)
-* **Datenbank:** [SQLite](https://www.sqlite.org/) (Lokale Datei `finanzdaten.db`)
+* **Frontend:** [Streamlit](https://streamlit.io/) (Web-Interface)
+* **Visualisierung:** [Plotly](https://plotly.com/) (Interaktive Charts & Graphen)
+* **Datenverarbeitung:** [Pandas](https://pandas.pydata.org/) (ETL & Berechnung)
+* **Datenbank:** [SQLite](https://www.sqlite.org/) (Lokale Speicherung)
 * **Sprache:** Python 3.10+
 
 ## ❓Troubleshooting
@@ -112,6 +114,13 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 
 * Klicken Sie auf "Weitere Informationen" -> "Trotzdem ausführen".
 
-## **Kontakt:** Niklas Finder
+## **Kontakt:** Gruppe 3
+
+* **Rubtsova, Alina**
+* **Finder, Niklas Christopher**
+* **Nassif, Mohamad Yaman**
+* **Kenfack Momo, Olidia Merveille**
+* **Beier, Marc**
+* **Pinekenstein, Dimitri**
 
 **Dokumentation:** Siehe Ordner `/documentation` für das technische IT-Konzept.
