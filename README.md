@@ -98,6 +98,27 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 * **Datenbank:** [SQLite](https://www.sqlite.org/) (Lokale Speicherung)
 * **Sprache:** Python 3.10+
 
+## 🏗️ Projektstruktur
+
+Die Ordnerstruktur trennt sauber zwischen Rohdaten, Quellcode, Tests und Dokumentation:
+
+SWT-Projekt-Gruppe3/
+├── .venv/                 	# [Lokal] Virtuelle Python-Umgebung (nicht im Git)
+├── data/                  	# Eingang: Hier liegen die SAP-Exporte (.xlsx/.csv)
+├── documentation/      	# Projektdokumentation
+│   ├── img/               	# Screenshots (z.B. Test-Coverage, Dashboard)
+│   └── KONZEPT.md  	# Detailliertes technisches Konzept
+├── src/                   	# Quellcode (Source)
+│   ├── app.py            	# Frontend: Das Streamlit-Dashboard
+│   ├── db_importer.py 	# Backend: ETL-Prozess & Datenbank-Erstellung
+│   └── logo.png          	# Bilddatei für das UI-Branding
+├── tests/                 	# Qualitätssicherung
+│   └── test_logic.py     	# Unit-Tests für Logik & Datenbank
+├── finanzdaten.db       	# [Generiert] Die lokale SQLite-Datenbank
+├── README.md        	# Diese Anleitung
+├── requirements.txt    	# Liste aller Python-Abhängigkeiten
+└── start_projekt.bat    	# One-Click-Starter für Windows-Nutzer (Alternativ über PowerShell)
+
 ## ❓Troubleshooting
 
 **Fehler: "Keine Daten gefunden"**
@@ -114,6 +135,21 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 
 * Klicken Sie auf "Weitere Informationen" -> "Trotzdem ausführen".
 
+## ✅ Tests & Qualitätssicherung
+
+Das Projekt setzt auf `pytest` für Unit- und Integrationstests. Wir prüfen dabei kritische Logik (z.B. Währungsumrechnung), Datenbank-Integrität und UI-Stabilität.
+
+**Verfügbare Befehle:**
+
+| Befehl                         | Beschreibung                                                   |
+| :----------------------------- | :------------------------------------------------------------- |
+| `pytest`                     | Führt alle Tests aus (Logik & DB).                            |
+| `pytest -v`                  | Zeigt detaillierte Ergebnisse pro Testfall an (Verbose).       |
+| `pytest --cov=src`           | Prüft die Testabdeckung (wie viel % des Codes sind getestet). |
+| `pytest tests/test_logic.py` | Führt nur die Logik-Tests aus (schneller Durchlauf).          |
+
+*Der aktuelle Coverage-Report liegt als Screenshot unter `/documentation/img/test_coverage.png`.*
+
 ## **Kontakt:** Gruppe 3
 
 * **Rubtsova, Alina**
@@ -124,3 +160,7 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 * **Pinekenstein, Dimitri**
 
 **Dokumentation:** Siehe Ordner `/documentation` für das technische IT-Konzept.
+
+## 📄 Lizenz
+
+Dieses Projekt wurde im Rahmen des Moduls "Softwaretechnik-Projekt" erstellt und ist für akademische Zwecke bestimmt.
