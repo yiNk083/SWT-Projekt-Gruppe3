@@ -1,7 +1,7 @@
 # 📘 Technisches IT-Konzept
 
 **Projekt:** Projekt-Analyse-Cockpit
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Produktiv
 
 ---
@@ -121,11 +121,11 @@ Folgende Features sind bereits im Backlog definiert und für kommende Versionen 
 * **Ziel:** Bereitstellung der aufbereiteten Daten für Drittsysteme.
 * **Geplante Umsetzung:** Entwicklung von API-Endpunkten (z.B. via FastAPI), um die bereinigten Finanzdaten (JSON) an BI-Tools oder andere Dashboards zu übergeben.
 
-## 8. Qualitätssicherung & Tests
+## 8. Qualitätssicherung & Betrieb
 
-Um die Zuverlässigkeit der Finanzberechnungen und die Stabilität der Anwendung zu gewährleisten, wurde eine automatisierte Test-Suite implementiert. Dies entspricht modernen DevOps-Standards (Continuous Integration).
+Um die Zuverlässigkeit der Finanzberechnungen und die Stabilität der Anwendung zu gewährleisten, setzen wir auf einen ganzheitlichen QA-Ansatz, der automatisierte Tests (Pre-Deployment) mit aktivem Monitoring (Post-Deployment) verbindet.
 
-### 8.1 Test-Strategie
+### 8.1 Test-Strategie (Automatisierung)
 
 Wir setzen auf das Framework **`pytest`**, um verschiedene Ebenen der Anwendung zu prüfen:
 
@@ -134,20 +134,28 @@ Wir setzen auf das Framework **`pytest`**, um verschiedene Ebenen der Anwendung 
    * Überprüfung der Budget-Formel (`Verfügbar = Budget - (Ist + Obligo)`).
 2. **Integration-Tests (Daten):**
    * Test des "Full Outer Join"-Algorithmus, um sicherzustellen, dass keine Bestellungen verloren gehen, die nur im Obligo oder nur im Ist existieren.
-   * Prüfung der SQLite-Datenbankverbindung.
 3. **System-Tests (UI):**
-   * Ein "Smoke-Test" startet die Streamlit-Applikation bei jedem Durchlauf headless, um sicherzustellen, dass der Python-Code ohne Syntaxfehler oder Abstürze lädt.
+   * Ein "Smoke-Test" startet die Streamlit-Applikation bei jedem Durchlauf headless, um sicherzustellen, dass der Python-Code ohne Syntaxfehler lädt.
 
-### 8.2 Test-Abdeckung (Coverage)
+### 8.2 Reproduzierbarkeit & Coverage
 
-Mit dem Tool `pytest-cov` messen wir, wie viel Prozent des Codes durch Tests abgesichert sind.
+Die Tests sind so konzipiert, dass sie auf jeder lokalen Umgebung ausgeführt werden können.
+Befehl: `.\.venv\Scripts\python.exe -m pytest --cov=src`
+
+Mit dem Tool `pytest-cov` messen wir die Testabdeckung:
 
 ![test_coverage.png](image/KONZEPT/test_coverage.png)
-*(Abbildung: Aktueller Testbericht. Die hohe Abdeckung in `app.py` bestätigt die Stabilität des Dashboards, während Unit-Tests die kritischen Import-Funktionen in `db_importer.py` absichern.)*
+*(Abbildung: Aktueller Testbericht. Die hohe Abdeckung in `app.py` bestätigt die Stabilität des Dashboards.)*
 
-### 8.3 Reproduzierbarkeit der Tests
-Die Tests sind so konzipiert, dass sie auf jeder lokalen Umgebung ausgeführt werden können. Der Befehl zur Verifizierung der hier gezeigten Ergebnisse lautet:
+### 8.3 Monitoring & Error Tracking (Sentry)
 
-`python -m pytest --cov=src`
+Anstelle eines komplexen Server-Monitorings nutzen wir **Sentry** für das Error-Tracking im laufenden Betrieb.
 
-Dies stellt sicher, dass zukünftige Änderungen am Code (z.B. neue Features im Importer) nicht unbemerkt die bestehende Logik zerstören (Regression Testing).
+* **Frontend:** Überwacht Abstürze in der Streamlit-Oberfläche.
+* **Backend:** Überwacht den ETL-Prozess (`db_importer.py`).
+
+**Vorteil:** Sollte eine Excel-Datei fehlerhaft sein oder der Import scheitern, erhalten wir sofort einen detaillierten Stack-Trace, ohne Log-Dateien auf dem Client suchen zu müssen.
+
+### 8.4 Daten-Validierung (Plausibilitäts-Ergebnis)
+
+Ein wesentlicher Teil der Qualitätssicherung ist der Abgleich der importierten Daten mit der Erwartungshaltung ("Plausi-Check").

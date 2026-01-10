@@ -99,6 +99,7 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 * **Visualisierung:** [Plotly](https://plotly.com/) (Interaktive Charts & Graphen)
 * **Datenverarbeitung:** [Pandas](https://pandas.pydata.org/) (ETL & Berechnung)
 * **Datenbank:** [SQLite](https://www.sqlite.org/) (Lokale Speicherung)
+* **Monitoring:** [Sentry](https://sentry.io/) (Error Tracking SDK)
 * **Sprache:** Python 3.10+
 
 ## 🏗️ Projektstruktur
