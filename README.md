@@ -1,5 +1,8 @@
 # SWT-Projekt-Gruppe3
 
+**Repository:** [https://github.com/yiNk083/SWT-Projekt-Gruppe3](https://github.com/yiNk083/SWT-Projekt-Gruppe3)
+*(Hinweis: Dies ist das originale Projekt-Repository.)*
+
 # 🚄 Projekt-Analyse-Cockpit
 
 Ein automatisiertes Controlling-Dashboard zur Plausibilisierung von Projektkosten, Obligos und Budgets (analog "Plausi-Check").
@@ -30,8 +33,8 @@ Voraussetzung: [Python](https://www.python.org/) und [Git](https://git-scm.com/)
 ### 1. Repository klonen
 
 ```bash
-git clone [https://github.com/IhrUsername/finance-plausi-tool.git](https://github.com/IhrUsername/finance-plausi-tool.git)
-cd finance-plausi-tool
+git clone [https://github.com/yiNk083/SWT-Projekt-Gruppe3.git](https://github.com/yiNk083/SWT-Projekt-Gruppe3.git)
+cd SWT-Projekt-Gruppe3
 ```
 
 ### 2. Umgebung einrichten (nur beim ersten Mal)
@@ -102,22 +105,24 @@ Das Tool ist erreichbar unter: `http://localhost:8501`
 
 Die Ordnerstruktur trennt sauber zwischen Rohdaten, Quellcode, Tests und Dokumentation:
 
+```
 SWT-Projekt-Gruppe3/
-├── .venv/                 	# [Lokal] Virtuelle Python-Umgebung (nicht im Git)
-├── data/                  	# Eingang: Hier liegen die SAP-Exporte (.xlsx/.csv)
-├── documentation/      	# Projektdokumentation
-│   ├── img/               	# Screenshots (z.B. Test-Coverage, Dashboard)
-│   └── KONZEPT.md  	# Detailliertes technisches Konzept
-├── src/                   	# Quellcode (Source)
-│   ├── app.py            	# Frontend: Das Streamlit-Dashboard
-│   ├── db_importer.py 	# Backend: ETL-Prozess & Datenbank-Erstellung
-│   └── logo.png          	# Bilddatei für das UI-Branding
-├── tests/                 	# Qualitätssicherung
-│   └── test_logic.py     	# Unit-Tests für Logik & Datenbank
-├── finanzdaten.db       	# [Generiert] Die lokale SQLite-Datenbank
-├── README.md        	# Diese Anleitung
-├── requirements.txt    	# Liste aller Python-Abhängigkeiten
-└── start_projekt.bat    	# One-Click-Starter für Windows-Nutzer (Alternativ über PowerShell)
+├── .venv/              # [Lokal] Virtuelle Python-Umgebung (nicht im Git)
+├── data/               # Eingang: Hier liegen die SAP-Exporte (.xlsx/.csv)
+├── documentation/      # Projektdokumentation
+│   ├── img/            # Screenshots (z.B. Test-Coverage, Dashboard)
+│   └── KONZEPT.md      # Detailliertes technisches Konzept
+├── src/                # Quellcode (Source)
+│   ├── app.py          # Frontend: Das Streamlit-Dashboard
+│   ├── db_importer.py  # Backend: ETL-Prozess & Datenbank-Erstellung
+│   └── logo.png        # Bilddatei für das UI-Branding
+├── tests/              # Qualitätssicherung
+│   └── test_logic.py   # Unit-Tests für Logik & Datenbank
+├── finanzdaten.db      # [Generiert] Die lokale SQLite-Datenbank
+├── README.md           # Diese Anleitung
+├── requirements.txt    # Liste aller Python-Abhängigkeiten
+└── start_projekt.bat   # One-Click-Starter für Windows-Nutzer (Alternativ über PowerShell)
+```
 
 ## ❓Troubleshooting
 
@@ -158,6 +163,8 @@ Das Projekt setzt auf `pytest` für Unit- und Integrationstests. Wir prüfen dab
 * **Kenfack Momo, Olidia Merveille**
 * **Beier, Marc**
 * **Pinekenstein, Dimitri**
+
+---
 
 **Dokumentation:** Siehe Ordner `/documentation` für das technische IT-Konzept.
 

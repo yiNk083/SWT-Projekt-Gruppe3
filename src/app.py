@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine
 import os
+import plotly.graph_objects as go
 
 # --- KONFIGURATION ---
 APP_NAME = "Projekt-Analyse-Cockpit"
@@ -18,18 +19,14 @@ def format_currency(val):
         val = 0
     return f"{val:,.2f} €".replace(",", "X").replace(".", ",").replace("X", ".")
 
-def clean_number(series):
-    # Wandelt Text "1.000,00" -> Zahl 1000.0
-    return pd.to_numeric(series.astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
-
-def get_project_from_psp(psp_string):
-    # Macht aus G.011803001.03.03 -> G.011803001 (Hauptprojekt)
-    if not isinstance(psp_string, str):
+def get_bereich_from_psp(psp):
+    """Extrahiert den Bereich (z.B. .01, .02) aus PSP für die Charts"""
+    if not isinstance(psp, str):
         return "Unbekannt"
-    parts = psp_string.split('.')
-    if len(parts) >= 2:
-        return f"{parts[0]}.{parts[1]}"
-    return psp_string
+    parts = psp.split('.')
+    if len(parts) >= 3:
+        return f".{parts[2]}"  # z.B. .01, .02, .03
+    return psp
 
 # --- SEITENLEISTE ---
 
@@ -39,21 +36,23 @@ if os.path.exists(logo_path):
 
 st.sidebar.header("Filter & Navigation")
 
-# 1. Projekt-Liste laden
+# 1. Projekt-Liste laden (NEU: Nutzt die optimierte Spalte 'hauptprojekt')
 try:
-    # Wir suchen alle Projekte aus allen relevanten Tabellen
+    # Wir laden direkt die Hauptprojekte aus der DB
     query_all = """
-    SELECT DISTINCT Objekt as psp FROM ist_kosten
+    SELECT DISTINCT hauptprojekt FROM ist_kosten WHERE hauptprojekt IS NOT NULL
     UNION
-    SELECT DISTINCT Objekt as psp FROM obligo_cji5
+    SELECT DISTINCT hauptprojekt FROM obligo_cji5 WHERE hauptprojekt IS NOT NULL
     """
-    df_all_psps = pd.read_sql(query_all, engine)
+    df_projects = pd.read_sql(query_all, engine)
     
-    # Projektnummern extrahieren
-    raw_psps = df_all_psps['psp'].dropna().astype(str).tolist()
-    all_projects = sorted(list(set([get_project_from_psp(p) for p in raw_psps])))
+    if not df_projects.empty:
+        all_projects = sorted(df_projects['hauptprojekt'].dropna().unique().tolist())
+    else:
+        all_projects = []
+
 except Exception as e:
-    st.sidebar.error(f"Datenbank-Fehler: {e}")
+    st.sidebar.error(f"Datenbank-Fehler (bitte Importer prüfen): {e}")
     all_projects = []
 
 if all_projects:
@@ -71,29 +70,32 @@ if selected_project:
     st.markdown(f"### Analyse für Projekt: `{selected_project}`")
 
     # ---------------------------------------------------------
-    # 1. DATEN LADEN
+    # 1. DATEN LADEN (NEU: Filtert auf Hauptprojekt)
     # ---------------------------------------------------------
     
     # A) IST-KOSTEN
+    # Wir suchen exakt nach dem Hauptprojekt oder allem was damit anfängt
     query_ist = f"""
     SELECT objekt as psp, einkaufsbeleg as bestellung, bezeichnung as text, "wert/bwähr" as wert, periode
     FROM ist_kosten 
-    WHERE objekt LIKE '{selected_project}%'
+    WHERE hauptprojekt = '{selected_project}' OR objekt LIKE '{selected_project}%'
     """
     df_ist = pd.read_sql(query_ist, engine)
 
     # B) OBLIGO
-    # Fallback, falls Spalte 'bezeichnung' fehlt
     try:
         query_obligo = f"""
         SELECT objekt as psp, "nr_referenzbeleg" as bestellung, bezeichnung as text_obligo, "wert/bwähr" as obligo_wert
-        FROM obligo_cji5 WHERE objekt LIKE '{selected_project}%'
+        FROM obligo_cji5 
+        WHERE hauptprojekt = '{selected_project}' OR objekt LIKE '{selected_project}%'
         """
         df_obligo = pd.read_sql(query_obligo, engine)
     except:
+        # Fallback falls Bezeichnung fehlt
         query_obligo = f"""
         SELECT objekt as psp, "nr_referenzbeleg" as bestellung, '' as text_obligo, "wert/bwähr" as obligo_wert
-        FROM obligo_cji5 WHERE objekt LIKE '{selected_project}%'
+        FROM obligo_cji5 
+        WHERE hauptprojekt = '{selected_project}' OR objekt LIKE '{selected_project}%'
         """
         df_obligo = pd.read_sql(query_obligo, engine)
 
@@ -109,17 +111,19 @@ if selected_project:
         df_budget = pd.DataFrame()
 
     # ---------------------------------------------------------
-    # 2. ZAHLEN BEREINIGEN
+    # 2. KEINE BEREINIGUNG MEHR NÖTIG
     # ---------------------------------------------------------
-
+    # Da der Importer jetzt Floats liefert, müssen wir hier nichts mehr cleansen.
+    # Zur Sicherheit stellen wir nur sicher, dass es Zahlen sind (falls DB leer war)
+    
     if not df_ist.empty:
-        df_ist['wert'] = clean_number(df_ist['wert'])
+        df_ist['wert'] = pd.to_numeric(df_ist['wert'], errors='coerce').fillna(0)
     
     if not df_obligo.empty:
-        df_obligo['obligo_wert'] = clean_number(df_obligo['obligo_wert'])
+        df_obligo['obligo_wert'] = pd.to_numeric(df_obligo['obligo_wert'], errors='coerce').fillna(0)
     
     if not df_budget.empty:
-        df_budget['betrag'] = clean_number(df_budget['betrag'])
+        df_budget['betrag'] = pd.to_numeric(df_budget['betrag'], errors='coerce').fillna(0)
 
     # ---------------------------------------------------------
     # 3. KPI DASHBOARD (GESAMTSUMMEN)
@@ -141,23 +145,22 @@ if selected_project:
     st.divider()
 
     # ---------------------------------------------------------
-    # 4. PSP-STRUKTUR ÜBERSICHT (NEU!)
+    # 4. PSP-STRUKTUR ÜBERSICHT
     # ---------------------------------------------------------
     st.subheader("📑 PSP-Elemente im Projekt")
     
-    # Wir aggregieren Ist-Kosten pro PSP
+    # Aggregation
     if not df_ist.empty:
         psp_ist = df_ist.groupby('psp')['wert'].sum().reset_index()
     else:
         psp_ist = pd.DataFrame(columns=['psp', 'wert'])
         
-    # Wir aggregieren Obligo pro PSP
     if not df_obligo.empty:
         psp_obligo = df_obligo.groupby('psp')['obligo_wert'].sum().reset_index()
     else:
         psp_obligo = pd.DataFrame(columns=['psp', 'obligo_wert'])
 
-    # Merge PSP Stats
+    # Merge
     df_psp_stats = pd.merge(psp_ist, psp_obligo, on='psp', how='outer').fillna(0)
     df_psp_stats['Gesamtaufwand'] = df_psp_stats['wert'] + df_psp_stats['obligo_wert']
     
@@ -176,372 +179,157 @@ if selected_project:
 
     st.divider()
 
-
-#Diagramme 
-
-
     # ---------------------------------------------------------
-    # 4B. BUDGET-AMPEL PRO PSP-ELEMENT
+    # 5. DIAGRAMME & VISUALISIERUNGEN
     # ---------------------------------------------------------
-    st.subheader(" Budget-Ampel pro PSP-Element")
+
+    # 5A. BUDGET-AMPEL
+    st.subheader("🚥 Budget-Ampel pro PSP-Element")
     
     if not df_psp_stats.empty and total_budget > 0:
-        import plotly.graph_objects as go
-        
         df_ampel = df_psp_stats.copy()
         df_ampel['Auslastung %'] = (df_ampel['Gesamtaufwand'] / total_budget * 100)
         df_ampel = df_ampel.sort_values('Auslastung %', ascending=False)
         
-        # Farben basierend auf Auslastung
         def get_color(prozent):
-            if prozent > 100:
-                return '#d32f2f'  # Rot
-            elif prozent > 80:
-                return '#ffa726'  # Orange
-            else:
-                return '#66bb6a'  # Grün
+            if prozent > 100: return '#d32f2f'  # Rot
+            elif prozent > 80: return '#ffa726'  # Orange
+            else: return '#66bb6a'  # Grün
         
         df_ampel['color'] = df_ampel['Auslastung %'].apply(get_color)
         
-        # Horizontales Balkendiagramm
         fig = go.Figure()
-        
         fig.add_trace(go.Bar(
             y=df_ampel['psp'],
             x=df_ampel['Auslastung %'],
             orientation='h',
-            marker=dict(
-                color=df_ampel['color'],
-                line=dict(color='rgba(0,0,0,0.3)', width=1)
-            ),
+            marker=dict(color=df_ampel['color']),
             text=df_ampel['Auslastung %'].apply(lambda x: f"{x:.1f}%"),
-            textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Auslastung: %{x:.1f}%<br>Kosten: ' + 
-                         df_ampel['Gesamtaufwand'].apply(lambda x: format_currency(x)) + '<extra></extra>'
+            textposition='outside'
         ))
         
-        # Schwellwert-Linien
-        fig.add_vline(x=80, line_dash="dash", line_color="orange", annotation_text="80%", annotation_position="top")
-        fig.add_vline(x=100, line_dash="dash", line_color="red", annotation_text="100%", annotation_position="top")
-        
-        fig.update_layout(
-            title="Budget-Auslastung pro PSP-Element",
-            xaxis_title="Auslastung (%)",
-            yaxis_title="",
-            height=max(300, len(df_ampel) * 50),
-            showlegend=False,
-            xaxis=dict(range=[0, max(120, df_ampel['Auslastung %'].max() * 1.1)])
-        )
-        
+        fig.add_vline(x=100, line_dash="dash", line_color="red")
+        fig.update_layout(title="Budget-Auslastung", height=max(300, len(df_ampel) * 50))
         st.plotly_chart(fig, use_container_width=True)
-        
-        #  Info-Karten
-        critical_count = len(df_ampel[df_ampel['Auslastung %'] > 100])
-        warning_count = len(df_ampel[(df_ampel['Auslastung %'] > 80) & (df_ampel['Auslastung %'] <= 100)])
-        ok_count = len(df_ampel[df_ampel['Auslastung %'] <= 80])
-        
-        col1, col2, col3 = st.columns(3)
-        col1.metric("🔴 Über Budget", critical_count)
-        col2.metric("🟡 Warnung (>80%)", warning_count)
-        col3.metric("🟢 Im Rahmen", ok_count)
-        
     else:
-        st.info("Keine Budget-Daten für Ampel verfügbar.")
+        st.info("Keine Budget-Daten für Ampel verfügbar (oder Budget ist 0).")
 
     st.divider()
 
-
-    # ---------------------------------------------------------
-    # 4C. ZEITVERLAUF: KOSTEN PRO MONAT
-    # ---------------------------------------------------------
-    st.subheader(" Kostenentwicklung über Zeit")
+    # 5B. ZEITVERLAUF
+    st.subheader("📈 Kostenentwicklung über Zeit")
     
     if not df_ist.empty and 'periode' in df_ist.columns:
-        # Daten nach Monat gruppieren
         df_timeline = df_ist.groupby('periode')['wert'].sum().reset_index()
-        
-        #  Periode als Zahl behandeln und sortieren
         df_timeline['periode_num'] = pd.to_numeric(df_timeline['periode'], errors='coerce')
-        df_timeline = df_timeline.dropna(subset=['periode_num'])  # Ungültige entfernen
         df_timeline = df_timeline.sort_values('periode_num')
-        
-        # Kumulative Kosten berechnen 
         df_timeline['Kumuliert'] = df_timeline['wert'].cumsum()
         
-        # Chart erstellen
-        import plotly.graph_objects as go
-        
         fig = go.Figure()
+        fig.add_trace(go.Bar(x=df_timeline['periode'], y=df_timeline['wert'], name='Monatlich', marker_color='lightblue'))
+        fig.add_trace(go.Scatter(x=df_timeline['periode'], y=df_timeline['Kumuliert'], name='Kumuliert', line=dict(color='darkblue', width=3), yaxis='y2'))
         
-        # Monatliche Kosten (Balken)
-        fig.add_trace(go.Bar(
-            x=df_timeline['periode'],
-            y=df_timeline['wert'],
-            name='Monatlich',
-            marker_color='lightblue',
-            yaxis='y'
-        ))
-        
-        # Kumulative Kosten (Linie)
-        fig.add_trace(go.Scatter(
-            x=df_timeline['periode'],
-            y=df_timeline['Kumuliert'],
-            name='Kumuliert',
-            line=dict(color='darkblue', width=3),
-            yaxis='y2'
-        ))
-        
-    
-       # Layout
         fig.update_layout(
-            title="Monatliche vs. Kumulative Ist-Kosten",
-            xaxis=dict(title="Periode (Monat)", type='category'),
-            yaxis=dict(title="Monatliche Kosten (€)", side='left'),
-            yaxis2=dict(title="Kumulative Kosten (€)", side='right', overlaying='y'),
-            hovermode='x unified',
-            height=400
+            yaxis=dict(title="Monatlich (€)"),
+            yaxis2=dict(title="Kumuliert (€)", overlaying='y', side='right'),
+            hovermode='x unified'
         )
-        
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Insights
-        max_month = df_timeline.loc[df_timeline['wert'].idxmax(), 'periode']
-        max_value = df_timeline['wert'].max()
-        total = df_timeline['Kumuliert'].iloc[-1]
-        
-        col1, col2 = st.columns(2)
-        col1.info(f" **Teuerster Monat:** {max_month} mit {format_currency(max_value)}")
-        col2.info(f" **Gesamt (kumuliert):** {format_currency(total)}")
-        
     else:
         st.info("Keine Zeitverlaufsdaten verfügbar.")
 
     st.divider()
 
-  # ---------------------------------------------------------
-    # 4D. IST VS. OBLIGO VERHÄLTNIS
-    # ---------------------------------------------------------
-    st.subheader(" Ist vs. Obligo Verhältnis")
-    
+    # 5C. IST VS OBLIGO
+    st.subheader("⚖️ Ist vs. Obligo")
     if total_ist > 0 or total_obligo > 0:
-        import plotly.graph_objects as go
-        
-        # Daten vorbereiten
-        labels = ['Bereits bezahlt (Ist)', 'Noch offen (Obligo)']
-        values = [total_ist, total_obligo]
-        colors = ['#1f77b4', '#ff7f0e']  # Blau für Ist, Orange für Obligo
-        
-        # Pie Chart erstellen
         fig = go.Figure(data=[go.Pie(
-            labels=labels,
-            values=values,
-            hole=0.4,  # Donut-Style
-            marker=dict(colors=colors),
-            textinfo='label+percent',
-            textposition='outside',
-            hovertemplate='<b>%{label}</b><br>%{value:,.2f} €<br>%{percent}<extra></extra>'
+            labels=['Ist (Bezahlt)', 'Obligo (Offen)'], 
+            values=[total_ist, total_obligo], 
+            hole=0.4,
+            marker=dict(colors=['#1f77b4', '#ff7f0e'])
         )])
-        
-        fig.update_layout(
-            title="Verteilung: Bezahlt vs. Offen",
-            height=400,
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
-        )
-        
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Insights
-        gesamt = total_ist + total_obligo
-        ist_prozent = (total_ist / gesamt * 100) if gesamt > 0 else 0
-        obligo_prozent = (total_obligo / gesamt * 100) if gesamt > 0 else 0
-        
-        col1, col2, col3 = st.columns(3)
-        col1.metric(" Bereits bezahlt", format_currency(total_ist), f"{ist_prozent:.1f}%")
-        col2.metric(" Noch offen", format_currency(total_obligo), f"{obligo_prozent:.1f}%")
-        col3.metric(" Gesamt", format_currency(gesamt))
-        
-    else:
-        st.info("Keine Daten für Ist vs. Obligo verfügbar.")
 
     st.divider()
 
-
-
-
-    # ---------------------------------------------------------
-    # 4E. KOSTENVERTEILUNG PRO PSP-BEREICH
-    # ---------------------------------------------------------
-    st.subheader("Kostenverteilung pro PSP-Bereich")
-    
+    # 5D. KOSTENVERTEILUNG PRO BEREICH
+    st.subheader("📊 Kostenverteilung pro PSP-Bereich")
     if not df_psp_stats.empty:
-        import plotly.graph_objects as go
-        
-        # PSP-Bereiche extrahieren (z.B. .01, .02, .03 aus G.011803005.01.03)
         df_psp_viz = df_psp_stats.copy()
+        df_psp_viz['bereich'] = df_psp_viz['psp'].apply(get_bereich_from_psp)
         
-        def extract_bereich(psp):
-            """Extrahiert den Bereich (z.B. .01, .02) aus PSP"""
-            if not isinstance(psp, str):
-                return "Unbekannt"
-            parts = psp.split('.')
-            if len(parts) >= 3:
-                return f".{parts[2]}"  # z.B. .01, .02, .03
-            return psp
-        
-        df_psp_viz['bereich'] = df_psp_viz['psp'].apply(extract_bereich)
-        
-        # Nach Bereich gruppieren
-        df_bereiche = df_psp_viz.groupby('bereich').agg({
-            'wert': 'sum',
-            'obligo_wert': 'sum',
-            'Gesamtaufwand': 'sum'
-        }).reset_index()
-        
-        df_bereiche = df_bereiche.sort_values('Gesamtaufwand', ascending=True)
-        
-        # Höhe berechnen
-        chart_height = max(300, len(df_bereiche) * 60)
-        
-        # Gestapeltes Balkendiagramm
+        df_bereiche = df_psp_viz.groupby('bereich').agg({'wert': 'sum', 'obligo_wert': 'sum'}).reset_index()
+        df_bereiche['Gesamt'] = df_bereiche['wert'] + df_bereiche['obligo_wert']
+        df_bereiche = df_bereiche.sort_values('Gesamt')
+
         fig = go.Figure()
+        fig.add_trace(go.Bar(y=df_bereiche['bereich'], x=df_bereiche['wert'], name='Ist', orientation='h', marker_color='#1f77b4'))
+        fig.add_trace(go.Bar(y=df_bereiche['bereich'], x=df_bereiche['obligo_wert'], name='Obligo', orientation='h', marker_color='#ff7f0e'))
         
-      # Ist-Kosten (blau)
-        fig.add_trace(go.Bar(
-            y=df_bereiche['bereich'],
-            x=df_bereiche['wert'],
-            name='Ist-Kosten',
-            orientation='h',
-            marker_color='#1f77b4',
-            text='',  
-            textposition='inside',
-            hovertemplate='<b>PSP %{y}</b><br>Ist-Kosten: %{x:,.2f} €<extra></extra>'
-        ))
-        
-      # Obligo (orange)
-        fig.add_trace(go.Bar(
-            y=df_bereiche['bereich'],
-            x=df_bereiche['obligo_wert'],
-            name='Obligo',
-            orientation='h',
-            marker_color='#ff7f0e',
-            text='',
-            textposition='inside',
-            hovertemplate='<b>PSP %{y}</b><br>Obligo: %{x:,.2f} €<extra></extra>'
-        ))
-        
-        fig.update_layout(  
-            title="Kosten pro PSP-Bereich (Ist + Obligo)",
-            xaxis_title="Kosten (€)",
-            yaxis=dict(
-                title="PSP-Bereich",
-                type='category'
-            ),
-            barmode='stack',
-            height=chart_height,
-            hovermode='y unified',
-            showlegend=False
-        )
-        
+        fig.update_layout(barmode='stack', title="Kosten pro Bereich", height=max(300, len(df_bereiche) * 60))
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Top 3 teuerste Bereiche
-        top3_bereiche = df_bereiche.nlargest(3, 'Gesamtaufwand')
-        
-        if not top3_bereiche.empty:
-            st.subheader(" Top 3 teuerste Bereiche")
-            cols = st.columns(3)
-            for idx, (_, row) in enumerate(top3_bereiche.iterrows()):
-                if idx < 3:
-                    cols[idx].metric(
-                        f"Bereich {row['bereich']}", 
-                        format_currency(row['Gesamtaufwand']),
-                        f"{row['Gesamtaufwand']/df_bereiche['Gesamtaufwand'].sum()*100:.1f}%"
-                    )
-        
-    else:
-        st.info("Keine PSP-Bereichsdaten verfügbar.")
 
     st.divider()
 
-
     # ---------------------------------------------------------
-    # 5. MATRIX (ZUSAMMENGEFASST)
+    # 6. MATRIX (ZUSAMMENGEFASST)
     # ---------------------------------------------------------
-    st.subheader(" Bestell-Matrix (Zusammengefasst)")
+    st.subheader("📋 Bestell-Matrix (Zusammengefasst)")
 
-    # Vorbereitung Ist
     if not df_ist.empty:
-        # Fülle leere Bestellnummern
-        df_ist['bestellung'] = df_ist['bestellung'].fillna('').astype(str).str.strip()
-        df_ist['bestellung'] = df_ist['bestellung'].replace(['', 'nan', 'None'], 'Sonstiges / Ohne Bestellung')
+        # Daten vorbereiten
+        df_ist['bestellung'] = df_ist['bestellung'].fillna('').astype(str).str.strip().replace(['', 'nan', 'None'], 'Sonstiges / Ohne Bestellung')
         df_ist['text'] = df_ist['text'].fillna('Unbekannt')
 
-        # GRUPPIERUNG: Wir gruppieren NUR noch nach Bestellung für die Zeilen
-        # Text nehmen wir den häufigsten (mode) oder ersten
-        # Pivot: Zeile=Bestellung, Spalte=Periode
-        pivot_ist = df_ist.pivot_table(
-            index='bestellung', 
-            columns='periode', 
-            values='wert', 
-            aggfunc='sum', 
-            fill_value=0
-        )
-        
-        # Wir holen uns separat den Text zur Bestellung (z.B. der erste Eintrag)
-        text_map = df_ist.groupby('bestellung')['text'].first()
-        
+        # Pivot Tabelle
+        pivot_ist = df_ist.pivot_table(index='bestellung', columns='periode', values='wert', aggfunc='sum', fill_value=0)
         pivot_ist['Summe Ist'] = pivot_ist.sum(axis=1)
         pivot_ist = pivot_ist.reset_index()
         
-        # Text wieder anfügen
+        # Text mapping
+        text_map = df_ist.groupby('bestellung')['text'].first()
         pivot_ist['text'] = pivot_ist['bestellung'].map(text_map)
         
+        # Obligo dazu holen
+        if not df_obligo.empty:
+            df_obligo['bestellung'] = df_obligo['bestellung'].fillna('').astype(str).str.strip()
+            grp_obligo = df_obligo.groupby('bestellung').agg({'obligo_wert': 'sum', 'text_obligo': 'first'}).reset_index()
+        else:
+            grp_obligo = pd.DataFrame(columns=['bestellung', 'obligo_wert', 'text_obligo'])
+
+        # Merge
+        final_df = pd.merge(pivot_ist, grp_obligo, on='bestellung', how='outer')
+        final_df = final_df.fillna(0)
+        
+        # Text korrigieren (Falls Ist leer war, nimm Obligo-Text)
+        if 'text' not in final_df.columns: final_df['text'] = ""
+        # Wir müssen sicherstellen, dass 'text_obligo' existiert bevor wir darauf zugreifen
+        if 'text_obligo' in final_df.columns:
+             # Einfacher Weg: Wenn Text 0 oder leer ist, nimm text_obligo
+             final_df['text'] = final_df.apply(lambda row: row['text_obligo'] if (row['text'] == 0 or row['text'] == "") else row['text'], axis=1)
+
+        # Auftragswert
+        final_df['Auftragswert (Kalk.)'] = final_df['Summe Ist'] + final_df['obligo_wert']
+
+        # Sortieren ("Sonstiges" nach unten)
+        final_df['sort_helper'] = final_df['bestellung'].apply(lambda x: 'ZZZ' if 'Sonstiges' in x else x)
+        final_df = final_df.sort_values('sort_helper').drop(columns=['sort_helper'])
+
+        # Spalten für Anzeige
+        display_df = final_df.rename(columns={'obligo_wert': 'Rest-Obligo'})
+        month_cols = sorted([c for c in display_df.columns if str(c).isdigit()], key=lambda x: int(x))
+        cols_order = ['bestellung', 'text'] + month_cols + ['Summe Ist', 'Rest-Obligo', 'Auftragswert (Kalk.)']
+        final_cols = [c for c in cols_order if c in display_df.columns]
+        
+        st.dataframe(
+            display_df[final_cols].style.format(precision=2, thousands=".", decimal=","),
+            height=600,
+            use_container_width=True 
+        )
+
     else:
-        pivot_ist = pd.DataFrame(columns=['bestellung', 'Summe Ist', 'text'])
-
-    # Vorbereitung Obligo
-    if not df_obligo.empty:
-        df_obligo['bestellung'] = df_obligo['bestellung'].fillna('').astype(str).str.strip()
-        grp_obligo = df_obligo.groupby('bestellung').agg({
-            'obligo_wert': 'sum',
-            'text_obligo': 'first'
-        }).reset_index()
-    else:
-        grp_obligo = pd.DataFrame(columns=['bestellung', 'obligo_wert', 'text_obligo'])
-
-    # Merge (Outer)
-    final_df = pd.merge(pivot_ist, grp_obligo, on='bestellung', how='outer')
-
-    # Aufräumen
-    final_df['Summe Ist'] = final_df['Summe Ist'].fillna(0)
-    final_df['obligo_wert'] = final_df['obligo_wert'].fillna(0)
-    
-    # Texte mergen
-    if 'text' not in final_df.columns: final_df['text'] = ""
-    final_df['text'] = final_df['text'].fillna(final_df['text_obligo']).fillna("Ohne Bezeichnung")
-    
-    # Auftragswert
-    final_df['Auftragswert (Kalk.)'] = final_df['Summe Ist'] + final_df['obligo_wert']
-
-    # Sortierung und Spalten
-    # "Sonstiges" nach unten
-    final_df['sort_helper'] = final_df['bestellung'].apply(lambda x: 'ZZZ' if 'Sonstiges' in x else x)
-    final_df = final_df.sort_values('sort_helper').drop(columns=['sort_helper'])
-
-    # Spalten ordnen
-    display_df = final_df.rename(columns={'obligo_wert': 'Rest-Obligo'})
-    
-    month_cols = sorted([c for c in display_df.columns if str(c).isdigit()], key=lambda x: int(x))
-    cols_order = ['bestellung', 'text'] + month_cols + ['Summe Ist', 'Rest-Obligo', 'Auftragswert (Kalk.)']
-    
-    final_cols = [c for c in cols_order if c in display_df.columns]
-    
-    st.dataframe(
-        display_df[final_cols].style.format(precision=2, thousands=".", decimal=","),
-        height=600,
-        use_container_width=True 
-    )
+        st.info("Bitte wählen Sie ein Projekt aus (oder keine Daten vorhanden).")
 
 else:
-    st.info(" Bitte wählen Sie ein Projekt aus.")
+    st.info("👈 Bitte wählen Sie ein Projekt in der Seitenleiste aus.")

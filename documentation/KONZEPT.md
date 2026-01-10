@@ -120,3 +120,34 @@ Folgende Features sind bereits im Backlog definiert und für kommende Versionen 
 
 * **Ziel:** Bereitstellung der aufbereiteten Daten für Drittsysteme.
 * **Geplante Umsetzung:** Entwicklung von API-Endpunkten (z.B. via FastAPI), um die bereinigten Finanzdaten (JSON) an BI-Tools oder andere Dashboards zu übergeben.
+
+## 8. Qualitätssicherung & Tests
+
+Um die Zuverlässigkeit der Finanzberechnungen und die Stabilität der Anwendung zu gewährleisten, wurde eine automatisierte Test-Suite implementiert. Dies entspricht modernen DevOps-Standards (Continuous Integration).
+
+### 8.1 Test-Strategie
+
+Wir setzen auf das Framework **`pytest`**, um verschiedene Ebenen der Anwendung zu prüfen:
+
+1. **Unit-Tests (Logik):**
+   * Validierung der `clean_currency_string` Funktion: Stellt sicher, dass SAP-Formate (`1.000,00`) korrekt in rechenbare Floats konvertiert werden.
+   * Überprüfung der Budget-Formel (`Verfügbar = Budget - (Ist + Obligo)`).
+2. **Integration-Tests (Daten):**
+   * Test des "Full Outer Join"-Algorithmus, um sicherzustellen, dass keine Bestellungen verloren gehen, die nur im Obligo oder nur im Ist existieren.
+   * Prüfung der SQLite-Datenbankverbindung.
+3. **System-Tests (UI):**
+   * Ein "Smoke-Test" startet die Streamlit-Applikation bei jedem Durchlauf headless, um sicherzustellen, dass der Python-Code ohne Syntaxfehler oder Abstürze lädt.
+
+### 8.2 Test-Abdeckung (Coverage)
+
+Mit dem Tool `pytest-cov` messen wir, wie viel Prozent des Codes durch Tests abgesichert sind.
+
+![test_coverage.png](image/KONZEPT/test_coverage.png)
+*(Abbildung: Aktueller Testbericht. Die hohe Abdeckung in `app.py` bestätigt die Stabilität des Dashboards, während Unit-Tests die kritischen Import-Funktionen in `db_importer.py` absichern.)*
+
+### 8.3 Reproduzierbarkeit der Tests
+Die Tests sind so konzipiert, dass sie auf jeder lokalen Umgebung ausgeführt werden können. Der Befehl zur Verifizierung der hier gezeigten Ergebnisse lautet:
+
+`python -m pytest --cov=src`
+
+Dies stellt sicher, dass zukünftige Änderungen am Code (z.B. neue Features im Importer) nicht unbemerkt die bestehende Logik zerstören (Regression Testing).
