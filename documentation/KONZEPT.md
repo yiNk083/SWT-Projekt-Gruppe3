@@ -1,7 +1,7 @@
 # 📘 Technisches IT-Konzept
 
 **Projekt:** Projekt-Analyse-Cockpit
-**Version:** 1.1
+**Version:** 1.0
 **Status:** Produktiv
 
 ---
