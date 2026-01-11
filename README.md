@@ -108,21 +108,24 @@ Die Ordnerstruktur trennt sauber zwischen Rohdaten, Quellcode, Tests und Dokumen
 
 ```
 SWT-Projekt-Gruppe3/
-├── .venv/              # [Lokal] Virtuelle Python-Umgebung (nicht im Git)
-├── data/               # Eingang: Hier liegen die SAP-Exporte (.xlsx/.csv)
-├── documentation/      # Projektdokumentation
-│   ├── img/            # Screenshots (z.B. Test-Coverage, Dashboard)
-│   └── KONZEPT.md      # Detailliertes technisches Konzept
-├── src/                # Quellcode (Source)
-│   ├── app.py          # Frontend: Das Streamlit-Dashboard
-│   ├── db_importer.py  # Backend: ETL-Prozess & Datenbank-Erstellung
-│   └── logo.png        # Bilddatei für das UI-Branding
-├── tests/              # Qualitätssicherung
-│   └── test_logic.py   # Unit-Tests für Logik & Datenbank
-├── finanzdaten.db      # [Generiert] Die lokale SQLite-Datenbank
-├── README.md           # Diese Anleitung
-├── requirements.txt    # Liste aller Python-Abhängigkeiten
-└── start_projekt.bat   # One-Click-Starter für Windows-Nutzer (Alternativ über PowerShell)
+├── .venv/                  # [Lokal] Virtuelle Python-Umgebung (nicht im Git)
+├── data/                   # Eingang: Hier liegen die SAP-Exporte (.xlsx/.csv)
+├── documentation/          # Projektdokumentation
+│   ├── image/              # Screenshots (z.B. Test-Coverage, Dashboard)
+│   ├── KONZEPT.md          # Detailliertes technisches Konzept
+│   ├── PROJEKTABLAUF.md    # Management-Doku (Ablauf, Tools, Beschreibung)
+│   └── VISUALISIERUNGEN.md # Erstellung der Diagramme im Frontend
+├── src/                    # Quellcode (Source)
+│   ├── app.py              # Frontend: Das Streamlit-Dashboard
+│   ├── db_importer.py      # Backend: ETL-Prozess & Datenbank-Erstellung
+│   └── logo.png            # Bilddatei für das UI-Branding
+├── tests/                  # Qualitätssicherung
+│   └── test_logic.py       # Unit-Tests für Logik & Datenbank
+├── .gitignore              # Git-Konfiguration (ignoriert venv, db, data)
+├── finanzdaten.db          # [Generiert] Die lokale SQLite-Datenbank
+├── README.md               # Diese Anleitung
+├── requirements.txt        # Liste aller Python-Abhängigkeiten
+└── start_projekt.bat       # One-Click-Starter für Windows-Nutzer (Alternativ über PowerShell)
 ```
 
 ## ❓Troubleshooting
