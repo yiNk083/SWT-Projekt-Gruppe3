@@ -152,7 +152,7 @@ Der Projektverlauf gliederte sich in 5 Phasen, von der Initialisierung bis zur f
 ## 5. Anhang: Screenshots
 
 **Screenshot: Excel-Dashboard** 
-![Trello Board Screenshot](image/PROJEKTABLAUF/excel.png)
+![Excel-Dashboard Screenshot](image/PROJEKTABLAUF/excel.png)
 *(Abbildung: Excel-Dashboard mit Powerquery für die ersten Analysen)*
 
 **Screenshot: Trello**
@@ -160,17 +160,17 @@ Der Projektverlauf gliederte sich in 5 Phasen, von der Initialisierung bis zur f
 *(Abbildung: Unser Trello-Board während der Entwicklungsphase)*
 
 **Screenshot: Use-Case**
-![Trello Board Screenshot](image/PROJEKTABLAUF/usecase.png)
+![Use-Case Screenshot](image/PROJEKTABLAUF/usecase.PNG)
 *(Abbildung: Enwturf als Use-Case Szenario)*
 
 **Screenshot: ER-Modell**
-![Trello Board Screenshot](image/PROJEKTABLAUF/er-modell.png)
+![ER-Modell Screenshot](image/PROJEKTABLAUF/er-modell.png)
 *(Abbildung: Über Mermaid erstelltes ER-Datenmodell)*
 
 **Screenshot: BPMN**
-![Trello Board Screenshot](image/PROJEKTABLAUF/bpmn.png)
+![BPMN Screenshot](image/PROJEKTABLAUF/bpmn.png)
 *(Abbildung: Vereinfachtes BPMN-Diagramm)*
 
 **Screenshot: Projekt-Analyse-Cockpit**
-![Trello Board Screenshot](image/PROJEKTABLAUF/cockpit.png)
+![Projekt-Analyse-Cockpit Screenshot](image/PROJEKTABLAUF/cockpit.png)
 *(Abbildung: Ausführung im Browser)*
