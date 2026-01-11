@@ -154,7 +154,7 @@ Das Projekt setzt auf `pytest` für Unit- und Integrationstests. Wir prüfen dab
 | `pytest --cov=src`           | Prüft die Testabdeckung (wie viel % des Codes sind getestet). |
 | `pytest tests/test_logic.py` | Führt nur die Logik-Tests aus (schneller Durchlauf).          |
 
-*Der aktuelle Coverage-Report liegt als Screenshot unter `/documentation/img/test_coverage.png`.*
+*Der aktuelle Coverage-Report liegt als Screenshot unter `/documentation/image/konzept/test_coverage.png`.*
 
 ## **Kontakt:** Gruppe 3
 
@@ -167,7 +167,7 @@ Das Projekt setzt auf `pytest` für Unit- und Integrationstests. Wir prüfen dab
 
 ---
 
-**Dokumentation:** Siehe Ordner `/documentation` für das technische IT-Konzept.
+**Dokumentation:** Siehe Ordner `/documentation` für das technische IT-Konzept und den Projektablauf.
 
 ## 📄 Lizenz
 

@@ -24,7 +24,7 @@ Für die Organisation, Kommunikation und Entwicklung haben wir auf einen bewähr
 
 ### 1.2 Projektmanagement (Einblick)
 
-Die Aufgabenverteilung erfolgte agil über ein **Trello-Board** mit den Spalten *Backlog*, *In Progress*, *Review* und *Done*.
+Die Aufgabenverteilung erfolgte agil über ein **Trello-Board** mit den Spalten *Dateien*, *Meetings*, *ToDos*, *In Progress*, *Done*, *BackLog*, *Tools* und *Ablaufprotokoll*.
 
 ![Trello Board Screenshot](image/PROJEKTABLAUF/trello.png)
 *(Abbildung: Unser Trello-Board während der Entwicklungsphase)*
@@ -151,26 +151,26 @@ Der Projektverlauf gliederte sich in 5 Phasen, von der Initialisierung bis zur f
 
 ## 5. Anhang: Screenshots
 
-Screenshot: Excel-Dashboard
+**Screenshot: Excel-Dashboard** 
 ![Trello Board Screenshot](image/PROJEKTABLAUF/excel.png)
 *(Abbildung: Excel-Dashboard mit Powerquery für die ersten Analysen)*
 
-Screenshot: Trello
+**Screenshot: Trello**
 ![Trello Board Screenshot](image/PROJEKTABLAUF/trello.png)
 *(Abbildung: Unser Trello-Board während der Entwicklungsphase)*
 
-Screenshot: Use-Case
+**Screenshot: Use-Case**
 ![Trello Board Screenshot](image/PROJEKTABLAUF/usecase.png)
 *(Abbildung: Enwturf als Use-Case Szenario)*
 
-Screenshot: ER-Modell
+**Screenshot: ER-Modell**
 ![Trello Board Screenshot](image/PROJEKTABLAUF/er-modell.png)
 *(Abbildung: Über Mermaid erstelltes ER-Datenmodell)*
 
-Screenshot: BPMN
+**Screenshot: BPMN**
 ![Trello Board Screenshot](image/PROJEKTABLAUF/bpmn.png)
 *(Abbildung: Vereinfachtes BPMN-Diagramm)*
 
-Screenshot: Projekt-Analyse-Cockpit
+**Screenshot: Projekt-Analyse-Cockpit**
 ![Trello Board Screenshot](image/PROJEKTABLAUF/cockpit.png)
 *(Abbildung: Ausführung im Browser)*
