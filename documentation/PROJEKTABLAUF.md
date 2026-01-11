@@ -163,6 +163,10 @@ Screenshot: Use-Case
 ![Trello Board Screenshot](image/PROJEKTABLAUF/usecase.png)
 *(Abbildung: Enwturf als Use-Case Szenario)*
 
+Screenshot: ER-Modell
+![Trello Board Screenshot](image/PROJEKTABLAUF/er-modell.png)
+*(Abbildung: Über Mermaid erstelltes ER-Datenmodell)*
+
 Screenshot: BPMN
 ![Trello Board Screenshot](image/PROJEKTABLAUF/bpmn.png)
 *(Abbildung: Vereinfachtes BPMN-Diagramm)*

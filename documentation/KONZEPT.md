@@ -121,6 +121,8 @@ Folgende Features sind bereits im Backlog definiert und für kommende Versionen 
 * **Ziel:** Bereitstellung der aufbereiteten Daten für Drittsysteme.
 * **Geplante Umsetzung:** Entwicklung von API-Endpunkten (z.B. via FastAPI), um die bereinigten Finanzdaten (JSON) an BI-Tools oder andere Dashboards zu übergeben.
 
+---
+
 ## 8. Qualitätssicherung & Betrieb
 
 Um die Zuverlässigkeit der Finanzberechnungen und die Stabilität der Anwendung zu gewährleisten, setzen wir auf einen ganzheitlichen QA-Ansatz, der automatisierte Tests (Pre-Deployment) mit aktivem Monitoring (Post-Deployment) verbindet.
